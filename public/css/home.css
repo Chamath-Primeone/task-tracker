@@ -1056,6 +1056,8 @@ body {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1100px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .teachers-checkbox-container { grid-template-columns: 1fr; }
+  .meta-inputs-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -1071,10 +1073,384 @@ body {
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .send-actions { flex-direction: column; align-items: stretch; }
   .send-buttons { justify-content: flex-end; }
+  .send-actions-bar { flex-direction: column; align-items: stretch; }
+  .actions-left, .actions-right { width: 100%; justify-content: stretch; }
+  .actions-right .btn { flex: 1; }
   .welcome-art { display: none; }
 }
 
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .stat-value { font-size: 22px; }
+}
+
+/* ===== TEACHER SELECTION & TASK FORM ENHANCEMENTS ===== */
+.form-section-header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(0, 212, 255, 0.03);
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title-icon {
+  font-size: 18px;
+}
+
+.section-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.section-subtitle strong {
+  color: var(--neon);
+}
+
+.teachers-checkbox-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 14px 20px 16px;
+}
+
+.teacher-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+  position: relative;
+}
+
+.teacher-card:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.03);
+}
+
+.teacher-card.selected {
+  border-color: var(--neon);
+  background: rgba(0, 212, 255, 0.07);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+}
+
+.teacher-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  position: relative;
+  margin-top: 2px;
+  transition: all var(--transition);
+}
+
+.teacher-checkbox:checked {
+  background: var(--neon);
+  border-color: var(--neon);
+}
+
+.teacher-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #060d1a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.teacher-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.teacher-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.teacher-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teacher-email {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.to {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.role-badge.cc {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--neon);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.role-badge.none {
+  display: none;
+}
+
+/* Recipient summary */
+.recipient-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 20px 14px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.recipient-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.tag-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  min-width: 32px;
+  text-align: center;
+}
+
+.tag-badge.to-badge {
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.tag-badge.cc-badge {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--neon);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.recipient-text {
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  word-break: break-all;
+}
+
+/* Meta grid */
+.meta-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-field .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.meta-field .form-input {
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: all var(--transition);
+}
+
+.meta-field .form-input:focus {
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+/* Subject preview */
+.subject-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(0, 212, 255, 0.03);
+}
+
+.subject-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subject-preview-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neon);
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Task Textareas */
+.task-input-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-input-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.input-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.required-star {
+  color: var(--neon-red);
+  font-weight: 700;
+}
+
+.optional-badge {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.task-textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.notes-textarea {
+  min-height: 90px;
+}
+
+.task-textarea::placeholder {
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+/* Actions bar */
+.send-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actions-left, .actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-gmail {
+  background: linear-gradient(135deg, #ea4335, #c5221f);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(234, 67, 53, 0.35);
+  padding: 11px 20px;
+}
+
+.btn-gmail:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(234, 67, 53, 0.5);
+  background: linear-gradient(135deg, #f04d3f, #d93025);
+}
+
+.gmail-icon {
+  font-size: 16px;
+}
+
+.btn-copy {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--neon);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  padding: 11px 18px;
+}
+
+.btn-copy:hover {
+  background: rgba(0, 212, 255, 0.2);
+  color: #ffffff;
+  border-color: var(--neon);
 }

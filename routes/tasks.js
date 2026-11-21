@@ -64,6 +64,34 @@ router.post('/send', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/tasks/log - Save task record to database (e.g. when composed via Gmail)
+router.post('/log', authenticateToken, (req, res) => {
+  try {
+    const { to, cc, subject, body } = req.body;
+    const userId = req.user.id;
+
+    if (!to || !subject || !body) {
+      return res.status(400).json({ error: 'To, Subject and Body are required.' });
+    }
+
+    const summary = body.length > 150 ? body.substring(0, 150) + '...' : body;
+    const db = getDB();
+    const result = db.prepare(`
+      INSERT INTO tasks (user_id, to_email, cc_emails, subject, body, summary)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(userId, to, cc || '', subject, body, summary);
+
+    res.json({
+      success: true,
+      message: 'Task logged successfully!',
+      taskId: result.lastInsertRowid
+    });
+  } catch (err) {
+    console.error('Log task error:', err);
+    res.status(500).json({ error: 'Failed to record task log.' });
+  }
+});
+
 // GET /api/tasks/history
 router.get('/history', authenticateToken, (req, res) => {
   try {

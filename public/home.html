@@ -148,98 +148,124 @@
     <!-- ===== DAILY TASKS TAB ===== -->
     <div class="tab-content" id="tabTasks">
       
-      <div class="section-header" style="margin-bottom: 24px">
-        <h3>📧 Send Daily Task Report</h3>
+      <div class="section-header" style="margin-bottom: 20px">
+        <div>
+          <h3>📧 Daily Task Submission</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Submit your daily progress report to instructors</p>
+        </div>
         <div class="today-badge" id="tasksTodayBadge"></div>
       </div>
 
       <div class="email-form-card">
-        <!-- From (read-only) -->
-        <div class="form-row">
-          <label class="email-label">From</label>
-          <div class="from-display">
-            <span class="from-avatar" id="formFromAvatar">?</span>
-            <span id="formFromEmail">your@email.com</span>
+        
+        <!-- 1. Teacher Selection Section -->
+        <div class="form-section-header">
+          <div class="section-title-wrap">
+            <span class="section-title-icon">👨‍🏫</span>
+            <span class="section-title-text">Teacher Selection</span>
+          </div>
+          <span class="section-subtitle">1st selected goes to <strong>To</strong>, remaining go to <strong>CC</strong></span>
+        </div>
+
+        <div class="teachers-checkbox-container" id="teachersContainer">
+          <!-- Rendered dynamically from TEACHERS_CONFIG in home.js -->
+        </div>
+
+        <!-- Recipient Preview Summary -->
+        <div class="recipient-summary" id="recipientSummary">
+          <div class="recipient-line">
+            <span class="tag-badge to-badge">To:</span>
+            <span id="previewTo" class="recipient-text">None</span>
+          </div>
+          <div class="recipient-line">
+            <span class="tag-badge cc-badge">CC:</span>
+            <span id="previewCC" class="recipient-text">None</span>
           </div>
         </div>
+
         <div class="form-divider"></div>
 
-        <!-- To -->
-        <div class="form-row">
-          <label class="email-label" for="toEmail">To</label>
-          <input type="email" id="toEmail" class="email-input" placeholder="teacher@school.com" autocomplete="off">
-        </div>
-        <div class="form-divider"></div>
-
-        <!-- CC -->
-        <div class="form-row cc-row">
-          <label class="email-label" for="ccEmail">CC</label>
-          <div class="cc-container" id="ccContainer">
-            <div class="cc-tags" id="ccTags"></div>
-            <input type="text" id="ccInput" class="email-input cc-input" placeholder="Add CC email, press Enter or comma">
+        <!-- 2. Meta Details (Date, Student Name, Student ID) -->
+        <div class="meta-inputs-grid">
+          <div class="meta-field">
+            <label class="form-label" for="taskDate">📅 Date</label>
+            <input type="date" id="taskDate" class="form-input" onchange="updateLivePreview()">
           </div>
-          <button class="cc-toggle" id="ccToggle" onclick="toggleCC()">+ CC</button>
+          <div class="meta-field">
+            <label class="form-label" for="studentName">👤 Student Name</label>
+            <input type="text" id="studentName" class="form-input" placeholder="Your Name" oninput="updateLivePreview()">
+          </div>
+          <div class="meta-field">
+            <label class="form-label" for="studentId">🆔 Student ID</label>
+            <input type="text" id="studentId" class="form-input" placeholder="e.g. ST-2024-001" oninput="saveStudentId(); updateLivePreview()">
+          </div>
         </div>
+
         <div class="form-divider"></div>
 
-        <!-- Subject -->
-        <div class="form-row">
-          <label class="email-label" for="emailSubject">Subject</label>
-          <input type="text" id="emailSubject" class="email-input" placeholder="Daily Task Report - [Date]">
+        <!-- 3. Subject Live Preview -->
+        <div class="subject-row">
+          <span class="subject-label">Subject:</span>
+          <span class="subject-preview-text" id="subjectPreview">Daily Task Log - ...</span>
         </div>
+
         <div class="form-divider"></div>
 
-        <!-- Body -->
-        <div class="body-section">
-          <div class="body-toolbar">
-            <span class="body-label">📝 Daily Task Log</span>
-            <div class="toolbar-actions">
-              <button class="tool-btn" onclick="insertTemplate()" title="Insert template">📋 Template</button>
-              <button class="tool-btn" onclick="clearBody()" title="Clear">🗑 Clear</button>
+        <!-- 4. Textarea: Tasks Completed Today -->
+        <div class="task-input-section">
+          <div class="task-input-header">
+            <label class="input-section-label" for="tasksCompleted">
+              <span>✅ Tasks Completed Today</span>
+              <span class="required-star">*</span>
+            </label>
+            <div class="header-actions">
+              <button type="button" class="tool-btn" onclick="insertBullet('tasksCompleted')">+ Bullet</button>
             </div>
           </div>
-          <textarea id="emailBody" class="body-textarea" placeholder="Write your daily task log here...
-
-Example:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 Date: [Today's Date]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ Tasks Completed:
-1. 
-2. 
-3. 
-
-🔄 Tasks In Progress:
-1. 
-
-📌 Notes / Observations:
--
-
-🗓 Tomorrow's Plan:
-1. 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"></textarea>
+          <textarea id="tasksCompleted" class="task-textarea" placeholder="1. Completed user registration with OTP verification&#10;2. Configured database tables in SQLite&#10;3. Designed dashboard UI with dark theme..." oninput="updateCounters(); updateLivePreview()"></textarea>
           <div class="body-footer">
-            <span class="char-count" id="charCount">0 characters</span>
-            <span class="word-count" id="wordCount">0 words</span>
+            <span class="char-count" id="completedCharCount">0 characters</span>
+            <span class="word-count" id="completedWordCount">0 words</span>
           </div>
         </div>
 
-        <!-- Send Actions -->
-        <div class="send-actions">
-          <div class="send-info">
-            <span>📡 Sending via SMTP</span>
+        <div class="form-divider"></div>
+
+        <!-- 5. Textarea: Notes / Blockers (Optional) -->
+        <div class="task-input-section">
+          <div class="task-input-header">
+            <label class="input-section-label" for="taskNotes">
+              <span>⚠️ Notes / Blockers</span>
+              <span class="optional-badge">(Optional - only included in email if filled)</span>
+            </label>
+            <div class="header-actions">
+              <button type="button" class="tool-btn" onclick="insertBullet('taskNotes')">+ Bullet</button>
+            </div>
           </div>
-          <div class="send-buttons">
-            <button class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
-            <button class="btn btn-primary" id="sendBtn" onclick="handleSendTask()">
-              <span>📤 Send Task Report</span>
-            </button>
-          </div>
+          <textarea id="taskNotes" class="task-textarea notes-textarea" placeholder="Encountered network latency during SMTP check; resolved by configuring timeout parameters." oninput="updateLivePreview()"></textarea>
         </div>
 
         <!-- Alerts -->
         <div class="alert hidden" id="sendAlert"></div>
+
+        <!-- 6. Action Buttons Bar -->
+        <div class="send-actions-bar">
+          <div class="actions-left">
+            <button type="button" class="btn btn-secondary" onclick="clearTaskForm()">
+              <span>🗑 Clear</span>
+            </button>
+          </div>
+          <div class="actions-right">
+            <button type="button" class="btn btn-copy" id="btnCopyEmail" onclick="handleCopyEmailText()" title="Copy email text as backup">
+              <span>📋 Copy Email Text</span>
+            </button>
+            <button type="button" class="btn btn-gmail" id="btnSendGmail" onclick="handleSendGmail()">
+              <span class="gmail-icon">✉️</span>
+              <span>Send via Gmail</span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 

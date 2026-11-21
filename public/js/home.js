@@ -3,11 +3,19 @@
 //  Dashboard, Daily Tasks, History
 // ============================================
 
+// ============================================
+//  TEACHER CONFIGURATION (Easy to edit names & emails)
+// ============================================
+const TEACHERS_CONFIG = [
+  { id: 'teacher1', name: 'Teacher 1 Name', email: 'teacher1@example.com' },
+  { id: 'teacher2', name: 'Teacher 2 Name', email: 'teacher2@example.com' },
+  { id: 'teacher3', name: 'Teacher 3 Name', email: 'teacher3@example.com' },
+];
+
 const API = '';
 let currentUser = null;
 let currentPage = 1;
-let ccEmails = [];
-let isCCVisible = false;
+let selectedTeacherIds = ['teacher1', 'teacher2', 'teacher3']; // Default: all 3 selected
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -36,10 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateDateDisplay();
   setInterval(updateDateDisplay, 60000);
 
-  // Load dashboard
+  // Load dashboard & setup task form
   loadDashboard();
-  setupEmailForm();
-  setupBodyCounter();
+  setupTaskFormDefaults();
 
   // Set greeting
   setGreeting();
@@ -47,12 +54,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setUserUI() {
   const initials = currentUser.username.slice(0, 2).toUpperCase();
-  document.getElementById('userAvatar').textContent = initials;
-  document.getElementById('userName').textContent = currentUser.username;
-  document.getElementById('userEmail').textContent = currentUser.email;
-  document.getElementById('welcomeName').textContent = currentUser.username;
-  document.getElementById('formFromEmail').textContent = currentUser.email;
-  document.getElementById('formFromAvatar').textContent = initials;
+  if (document.getElementById('userAvatar')) document.getElementById('userAvatar').textContent = initials;
+  if (document.getElementById('userName')) document.getElementById('userName').textContent = currentUser.username;
+  if (document.getElementById('userEmail')) document.getElementById('userEmail').textContent = currentUser.email;
+  if (document.getElementById('welcomeName')) document.getElementById('welcomeName').textContent = currentUser.username;
+  if (document.getElementById('studentName') && !document.getElementById('studentName').value) {
+    document.getElementById('studentName').value = currentUser.username;
+    updateLivePreview();
+  }
 }
 
 function setGreeting() {
@@ -281,197 +290,312 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
 
-// ===== EMAIL FORM =====
-function setupEmailForm() {
-  // Auto-fill today's date in subject
-  const today = new Date().toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
-  document.getElementById('emailSubject').value = `Daily Task Report - ${today}`;
+// ===== TASK FORM & TEACHER SELECTION =====
+function setupTaskFormDefaults() {
+  // 1. Date picker (today's date in YYYY-MM-DD)
+  const dateInput = document.getElementById('taskDate');
+  if (dateInput && !dateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
 
-  // CC input handler
-  const ccInput = document.getElementById('ccInput');
-  ccInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addCCEmail(ccInput.value.trim().replace(/,$/, ''));
-    } else if (e.key === 'Backspace' && ccInput.value === '' && ccEmails.length > 0) {
-      removeCCEmail(ccEmails.length - 1);
+  // 2. Student name
+  const studentNameInput = document.getElementById('studentName');
+  if (studentNameInput && currentUser && !studentNameInput.value) {
+    studentNameInput.value = currentUser.username;
+  }
+
+  // 3. Student ID (from localStorage or default)
+  const studentIdInput = document.getElementById('studentId');
+  if (studentIdInput && !studentIdInput.value) {
+    studentIdInput.value = localStorage.getItem('student_id') || 'ST-2024-001';
+  }
+
+  renderTeacherCheckboxes();
+  updateLivePreview();
+  updateCounters();
+}
+
+function saveStudentId() {
+  const input = document.getElementById('studentId');
+  if (input) {
+    const val = input.value.trim();
+    if (val) localStorage.setItem('student_id', val);
+  }
+}
+
+function renderTeacherCheckboxes() {
+  const container = document.getElementById('teachersContainer');
+  if (!container) return;
+
+  container.innerHTML = TEACHERS_CONFIG.map((teacher) => {
+    const isChecked = selectedTeacherIds.includes(teacher.id);
+    let roleClass = 'none';
+    let roleText = '';
+
+    if (isChecked) {
+      const selectedIndex = selectedTeacherIds.indexOf(teacher.id);
+      if (selectedIndex === 0) {
+        roleClass = 'to';
+        roleText = 'To (Primary)';
+      } else {
+        roleClass = 'cc';
+        roleText = `CC #${selectedIndex}`;
+      }
     }
-  });
 
-  // Hide CC by default
-  document.getElementById('ccContainer').style.display = 'none';
+    return `
+      <div class="teacher-card ${isChecked ? 'selected' : ''}" onclick="toggleTeacherSelect('${teacher.id}')">
+        <input type="checkbox" class="teacher-checkbox" id="chk_${teacher.id}" 
+               ${isChecked ? 'checked' : ''} 
+               onclick="event.stopPropagation(); toggleTeacherSelect('${teacher.id}')">
+        <div class="teacher-info">
+          <div class="teacher-name-row">
+            <span class="teacher-name">${escapeHtml(teacher.name)}</span>
+            <span class="role-badge ${roleClass}">${roleText}</span>
+          </div>
+          <div class="teacher-email">${escapeHtml(teacher.email)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  updateRecipientPreview();
+  updateLivePreview();
 }
 
-function toggleCC() {
-  isCCVisible = !isCCVisible;
-  const ccContainer = document.getElementById('ccContainer');
-  const ccToggle = document.getElementById('ccToggle');
-  ccContainer.style.display = isCCVisible ? 'flex' : 'none';
-  ccToggle.textContent = isCCVisible ? '× CC' : '+ CC';
-  if (isCCVisible) document.getElementById('ccInput').focus();
-}
-
-function addCCEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email) return;
-  if (!emailRegex.test(email)) {
-    showToast('Invalid email: ' + email, 'error');
-    return;
+function toggleTeacherSelect(teacherId) {
+  const index = selectedTeacherIds.indexOf(teacherId);
+  if (index > -1) {
+    if (selectedTeacherIds.length === 1) {
+      showToast('⚠️ At least 1 teacher must be selected!', 'warning');
+      return;
+    }
+    selectedTeacherIds.splice(index, 1);
+  } else {
+    selectedTeacherIds.push(teacherId);
   }
-  if (ccEmails.includes(email)) {
-    showToast('Email already added', 'warning');
-    return;
+  renderTeacherCheckboxes();
+}
+
+function getSelectedRecipients() {
+  const selectedTeachers = selectedTeacherIds
+    .map(id => TEACHERS_CONFIG.find(t => t.id === id))
+    .filter(Boolean);
+
+  if (selectedTeachers.length === 0) {
+    return { to: '', cc: '', toTeacher: null, ccTeachers: [] };
   }
-  ccEmails.push(email);
-  renderCCTags();
-  document.getElementById('ccInput').value = '';
+
+  const toTeacher = selectedTeachers[0];
+  const ccTeachers = selectedTeachers.slice(1);
+
+  return {
+    to: toTeacher.email,
+    cc: ccTeachers.map(t => t.email).join(', '),
+    toTeacher,
+    ccTeachers
+  };
 }
 
-function removeCCEmail(idx) {
-  ccEmails.splice(idx, 1);
-  renderCCTags();
+function updateRecipientPreview() {
+  const { toTeacher, ccTeachers } = getSelectedRecipients();
+  const previewTo = document.getElementById('previewTo');
+  const previewCC = document.getElementById('previewCC');
+
+  if (previewTo) {
+    previewTo.textContent = toTeacher ? `${toTeacher.name} <${toTeacher.email}>` : 'None (Please select at least 1)';
+    previewTo.style.color = toTeacher ? '#00ff88' : '#ff4757';
+  }
+
+  if (previewCC) {
+    if (ccTeachers.length > 0) {
+      previewCC.textContent = ccTeachers.map(t => `${t.name} <${t.email}>`).join(', ');
+      previewCC.style.color = 'var(--neon)';
+    } else {
+      previewCC.textContent = 'None';
+      previewCC.style.color = 'var(--text-muted)';
+    }
+  }
 }
 
-function renderCCTags() {
-  const container = document.getElementById('ccTags');
-  container.innerHTML = ccEmails.map((email, i) => `
-    <div class="cc-tag">
-      <span>${escapeHtml(email)}</span>
-      <button onclick="removeCCEmail(${i})" title="Remove">×</button>
-    </div>
-  `).join('');
-}
-
-function setupBodyCounter() {
-  const textarea = document.getElementById('emailBody');
-  textarea.addEventListener('input', () => {
-    const text = textarea.value;
-    document.getElementById('charCount').textContent = `${text.length} characters`;
-    document.getElementById('wordCount').textContent = `${text.trim() ? text.trim().split(/\s+/).length : 0} words`;
-  });
-}
-
-function insertTemplate() {
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  });
-  const username = currentUser ? currentUser.username : 'Student';
+function insertBullet(textareaId) {
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const val = textarea.value;
+  const bullet = '• ';
+  const needsNewline = start > 0 && val[start - 1] !== '\n';
+  const prefix = needsNewline ? '\n' + bullet : bullet;
   
-  const template = `Dear Teacher,
-
-I hope this email finds you well. Please find below my daily task report.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 Date: ${today}
-👤 Student: ${username}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ TASKS COMPLETED TODAY:
-1. 
-2. 
-3. 
-
-🔄 TASKS IN PROGRESS:
-1. 
-
-⚠️ CHALLENGES / BLOCKERS:
-- 
-
-📌 NOTES & OBSERVATIONS:
-- 
-
-🗓️ TOMORROW'S PLAN:
-1. 
-2. 
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Thank you for your guidance and support.
-
-Best regards,
-${username}`;
-
-  document.getElementById('emailBody').value = template;
-  // Update counters
-  document.getElementById('emailBody').dispatchEvent(new Event('input'));
+  textarea.value = val.substring(0, start) + prefix + val.substring(end);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+  updateCounters();
+  updateLivePreview();
 }
 
-function clearBody() {
-  if (confirm('Clear the email body?')) {
-    document.getElementById('emailBody').value = '';
-    document.getElementById('emailBody').dispatchEvent(new Event('input'));
+function updateCounters() {
+  const textarea = document.getElementById('tasksCompleted');
+  const text = textarea ? textarea.value : '';
+  const charEl = document.getElementById('completedCharCount');
+  const wordEl = document.getElementById('completedWordCount');
+  if (charEl) charEl.textContent = `${text.length} characters`;
+  if (wordEl) wordEl.textContent = `${text.trim() ? text.trim().split(/\s+/).length : 0} words`;
+}
+
+function generateEmailPayload() {
+  const { to, cc, toTeacher } = getSelectedRecipients();
+  const dateInput = document.getElementById('taskDate');
+  const date = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0];
+  const studentName = (document.getElementById('studentName') && document.getElementById('studentName').value.trim()) || (currentUser ? currentUser.username : 'Student');
+  const studentId = (document.getElementById('studentId') && document.getElementById('studentId').value.trim()) || 'N/A';
+  const tasksCompleted = document.getElementById('tasksCompleted') ? document.getElementById('tasksCompleted').value.trim() : '';
+  const notes = document.getElementById('taskNotes') ? document.getElementById('taskNotes').value.trim() : '';
+
+  // Subject format: Daily Task Log - {Student Name} ({Student ID}) - {Date}
+  const subject = `Daily Task Log - ${studentName} (${studentId}) - ${date}`;
+
+  // Body format: A neat, professional plain-text email template
+  let body = `Dear Teachers,\n\n`;
+  body += `Please find my daily task log for ${date} below.\n\n`;
+  body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  body += `📅 Date: ${date}\n`;
+  body += `👤 Student: ${studentName}\n`;
+  body += `🆔 Student ID: ${studentId}\n`;
+  body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  body += `✅ TASKS COMPLETED TODAY:\n`;
+  body += `${tasksCompleted || '(No tasks specified)'}\n\n`;
+
+  // Only include in the email body if notes is not empty
+  if (notes) {
+    body += `⚠️ NOTES / BLOCKERS:\n`;
+    body += `${notes}\n\n`;
   }
+
+  body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  body += `Thank you for your guidance and support.\n\n`;
+  body += `Best regards,\n`;
+  body += `${studentName}\n`;
+  body += `Student ID: ${studentId}\n`;
+
+  return { to, cc, subject, body, studentName, studentId, tasksCompleted, notes, date };
 }
 
-function clearForm() {
-  if (confirm('Clear all form fields?')) {
-    document.getElementById('toEmail').value = '';
-    ccEmails = [];
-    renderCCTags();
-    const today = new Date().toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-    document.getElementById('emailSubject').value = `Daily Task Report - ${today}`;
-    document.getElementById('emailBody').value = '';
-    document.getElementById('emailBody').dispatchEvent(new Event('input'));
-    hideAlert(document.getElementById('sendAlert'));
-  }
+function updateLivePreview() {
+  const { subject } = generateEmailPayload();
+  const preview = document.getElementById('subjectPreview');
+  if (preview) preview.textContent = subject;
 }
 
-// ===== SEND TASK =====
-async function handleSendTask() {
-  const token = localStorage.getItem('token');
-  const toEmail = document.getElementById('toEmail').value.trim();
-  const subject = document.getElementById('emailSubject').value.trim();
-  const body = document.getElementById('emailBody').value.trim();
+// ===== GMAIL COMPOSE LINK INTEGRATION =====
+async function handleSendGmail() {
   const alertEl = document.getElementById('sendAlert');
-  const sendBtn = document.getElementById('sendBtn');
-
   hideAlert(alertEl);
 
-  if (!toEmail) { showAlert(alertEl, 'error', 'Please enter recipient email (To).'); return; }
-  if (!subject) { showAlert(alertEl, 'error', 'Please enter a subject.'); return; }
-  if (!body) { showAlert(alertEl, 'error', 'Please write your daily task log.'); return; }
+  const { to, cc, subject, body, tasksCompleted } = generateEmailPayload();
 
-  // Finalize any CC input
-  const ccInputVal = document.getElementById('ccInput').value.trim();
-  if (ccInputVal) addCCEmail(ccInputVal.replace(/,$/, ''));
+  // Validation 1: At least 1 teacher selected
+  if (!to) {
+    showAlert(alertEl, 'error', '❌ Please select at least one teacher.');
+    return;
+  }
 
-  const cc = ccEmails.join(', ');
+  // Validation 2: Tasks completed is required
+  if (!tasksCompleted) {
+    showAlert(alertEl, 'error', '❌ Please enter your "Tasks Completed Today" before sending.');
+    const el = document.getElementById('tasksCompleted');
+    if (el) el.focus();
+    return;
+  }
 
-  sendBtn.disabled = true;
-  sendBtn.querySelector('span').textContent = '📡 Sending...';
+  // Build properly encoded Gmail Compose URL
+  // Format: https://mail.google.com/mail/?view=cm&fs=1&to={to}&cc={cc}&su={subject}&body={body}
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
+  // Open Gmail in a new tab
+  window.open(gmailUrl, '_blank');
+
+  // Background log into database for stats & history
+  await logTaskToBackend({ to, cc, subject, body });
+
+  showAlert(alertEl, 'success', '🚀 Gmail Compose opened in a new tab! Task record has been logged in your dashboard.');
+  showToast('✉️ Gmail opened in new tab!', 'success');
+}
+
+// ===== COPY EMAIL TEXT =====
+function handleCopyEmailText() {
+  const alertEl = document.getElementById('sendAlert');
+  hideAlert(alertEl);
+
+  const { body, tasksCompleted } = generateEmailPayload();
+
+  if (!tasksCompleted) {
+    showAlert(alertEl, 'error', '❌ Please enter "Tasks Completed Today" before copying.');
+    const el = document.getElementById('tasksCompleted');
+    if (el) el.focus();
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(body).then(() => {
+      showAlert(alertEl, 'success', '📋 Email text successfully copied to clipboard!');
+      showToast('📋 Copied to clipboard!', 'success');
+    }).catch(() => {
+      fallbackCopyText(body, alertEl);
+    });
+  } else {
+    fallbackCopyText(body, alertEl);
+  }
+}
+
+function fallbackCopyText(text, alertEl) {
+  const dummy = document.createElement('textarea');
+  dummy.value = text;
+  dummy.setAttribute('readonly', '');
+  dummy.style.position = 'absolute';
+  dummy.style.left = '-9999px';
+  document.body.appendChild(dummy);
+  dummy.select();
   try {
-    const res = await fetch(`${API}/api/tasks/send`, {
+    document.execCommand('copy');
+    showAlert(alertEl, 'success', '📋 Email text successfully copied to clipboard!');
+    showToast('📋 Copied to clipboard!', 'success');
+  } catch {
+    showAlert(alertEl, 'error', 'Failed to copy to clipboard.');
+  }
+  document.body.removeChild(dummy);
+}
+
+async function logTaskToBackend({ to, cc, subject, body }) {
+  try {
+    const token = localStorage.getItem('token');
+    await fetch(`${API}/api/tasks/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ to: toEmail, cc, subject, body })
+      body: JSON.stringify({ to, cc, subject, body })
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showAlert(alertEl, 'error', data.error || 'Failed to send email.');
-      return;
-    }
-
-    showAlert(alertEl, 'success', '✅ Task report sent successfully! Check your email for confirmation.');
-    showToast('📧 Task email sent!', 'success');
-
-    // Update today status and reload stats
+    // Reload dashboard stats
     loadDashboard();
-
   } catch (err) {
-    showAlert(alertEl, 'error', 'Network error. Please try again.');
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.querySelector('span').textContent = '📤 Send Task Report';
+    console.warn('Task logging warning:', err);
+  }
+}
+
+function clearTaskForm() {
+  if (confirm('Clear the task form fields?')) {
+    if (document.getElementById('tasksCompleted')) document.getElementById('tasksCompleted').value = '';
+    if (document.getElementById('taskNotes')) document.getElementById('taskNotes').value = '';
+    selectedTeacherIds = ['teacher1', 'teacher2', 'teacher3'];
+    renderTeacherCheckboxes();
+    updateCounters();
+    updateLivePreview();
+    hideAlert(document.getElementById('sendAlert'));
+    showToast('Form cleared', 'info');
   }
 }
 
