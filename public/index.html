@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS Task Tracker - Login</title>
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="bg-animated">
+    <div class="particle" style="--i:1"></div>
+    <div class="particle" style="--i:2"></div>
+    <div class="particle" style="--i:3"></div>
+    <div class="particle" style="--i:4"></div>
+    <div class="particle" style="--i:5"></div>
+    <div class="particle" style="--i:6"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <div class="auth-wrapper">
+    <!-- Logo -->
+    <div class="logo-area">
+      <div class="logo-icon">🎓</div>
+      <h1 class="logo-title">LMS Task Tracker</h1>
+      <p class="logo-sub">Daily Task Management System</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="auth-card" id="authCard">
+
+      <!-- ===== STEP 1: BOT VERIFICATION ===== -->
+      <div class="step active" id="stepCaptcha">
+        <div class="step-header">
+          <div class="step-icon">🤖</div>
+          <h2>Verify You're Human</h2>
+          <p>Please solve the equation below to continue</p>
+        </div>
+        <div class="captcha-box">
+          <div class="captcha-equation" id="captchaEquation">Loading...</div>
+          <div class="captcha-refresh" onclick="generateCaptcha()" title="New question">↻</div>
+        </div>
+        <div class="form-group">
+          <input type="number" id="captchaAnswer" class="form-input" placeholder="Enter your answer" autocomplete="off">
+        </div>
+        <div class="alert hidden" id="captchaError"></div>
+        <button class="btn btn-primary btn-full" onclick="verifyCaptcha()">
+          <span>Verify & Continue</span>
+          <span class="btn-icon">→</span>
+        </button>
+      </div>
+
+      <!-- ===== STEP 2: LOGIN ===== -->
+      <div class="step" id="stepLogin">
+        <div class="step-header">
+          <div class="step-icon">🔑</div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to your account</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" autocomplete="current-password">
+            <button class="toggle-pass" onclick="togglePassword('loginPassword', this)" tabindex="-1">👁</button>
+          </div>
+        </div>
+        <div class="alert hidden" id="loginError"></div>
+        <button class="btn btn-primary btn-full" id="loginBtn" onclick="handleLogin()">
+          <span>Sign In</span>
+          <span class="btn-icon">→</span>
+        </button>
+        <div class="auth-switch">
+          Don't have an account? <a href="#" onclick="showStep('stepSignup')">Create Account</a>
+        </div>
+      </div>
+
+      <!-- ===== STEP 3: SIGNUP ===== -->
+      <div class="step" id="stepSignup">
+        <div class="step-header">
+          <div class="step-icon">✨</div>
+          <h2>Create Account</h2>
+          <p>Join LMS Task Tracker today</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username <span class="label-hint">(This will be your profile name)</span></label>
+          <input type="text" id="signupUsername" class="form-input" placeholder="e.g. chamath_svp" autocomplete="username">
+          <div class="input-hint">3-20 chars: letters, numbers, underscore only</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="signupEmail" class="form-input" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="signupPassword" class="form-input" placeholder="Min. 6 characters" autocomplete="new-password">
+            <button class="toggle-pass" onclick="togglePassword('signupPassword', this)" tabindex="-1">👁</button>
+          </div>
+          <div class="password-strength" id="strengthBar">
+            <div class="strength-fill" id="strengthFill"></div>
+          </div>
+          <div class="input-hint" id="strengthText"></div>
+        </div>
+        <div class="alert hidden" id="signupError"></div>
+        <button class="btn btn-primary btn-full" id="signupBtn" onclick="handleSignup()">
+          <span>Create Account & Send OTP</span>
+          <span class="btn-icon">📧</span>
+        </button>
+        <div class="auth-switch">
+          Already have an account? <a href="#" onclick="showStep('stepLogin')">Sign In</a>
+        </div>
+      </div>
+
+      <!-- ===== STEP 4: OTP VERIFICATION ===== -->
+      <div class="step" id="stepOTP">
+        <div class="step-header">
+          <div class="step-icon">📧</div>
+          <h2>Check Your Email</h2>
+          <p>We sent a 6-digit OTP to <strong id="otpEmailDisplay"></strong></p>
+        </div>
+        <div class="otp-container">
+          <input type="text" class="otp-input" id="otp1" maxlength="1" oninput="otpInputHandler(this, null, 'otp2')">
+          <input type="text" class="otp-input" id="otp2" maxlength="1" oninput="otpInputHandler(this, 'otp1', 'otp3')">
+          <input type="text" class="otp-input" id="otp3" maxlength="1" oninput="otpInputHandler(this, 'otp2', 'otp4')">
+          <div class="otp-divider">—</div>
+          <input type="text" class="otp-input" id="otp4" maxlength="1" oninput="otpInputHandler(this, 'otp3', 'otp5')">
+          <input type="text" class="otp-input" id="otp5" maxlength="1" oninput="otpInputHandler(this, 'otp4', 'otp6')">
+          <input type="text" class="otp-input" id="otp6" maxlength="1" oninput="otpInputHandler(this, 'otp5', null)">
+        </div>
+        <div class="otp-timer">
+          <span id="otpTimerText">OTP expires in <strong id="otpCountdown">10:00</strong></span>
+        </div>
+        <div class="alert hidden" id="otpError"></div>
+        <button class="btn btn-primary btn-full" id="otpBtn" onclick="handleVerifyOTP()">
+          <span>Verify OTP</span>
+          <span class="btn-icon">✓</span>
+        </button>
+        <div class="auth-switch">
+          Didn't receive it? <a href="#" id="resendLink" onclick="handleResendOTP()">Resend OTP</a>
+        </div>
+      </div>
+
+      <!-- ===== SUCCESS ===== -->
+      <div class="step" id="stepSuccess">
+        <div class="success-animation">
+          <div class="success-circle">
+            <span class="success-check">✓</span>
+          </div>
+        </div>
+        <div class="step-header" style="margin-top: 20px">
+          <h2>Account Verified! 🎉</h2>
+          <p>Your account has been created successfully. You can now sign in.</p>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="showStep('stepLogin')">
+          <span>Proceed to Login</span>
+          <span class="btn-icon">→</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Progress dots -->
+    <div class="progress-dots" id="progressDots">
+      <div class="dot active" data-step="0" title="Verification"></div>
+      <div class="dot" data-step="1" title="Login / Signup"></div>
+      <div class="dot" data-step="2" title="OTP"></div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+</body>
+</html>

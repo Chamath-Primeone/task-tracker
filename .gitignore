@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+
+# Environment Variables
+.env
+.env.local
+
+# SQLite Database & temporary files
+lms.db
+lms.db-journal
+lms.db-wal
+lms.db-shm
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor directories
+.vscode/
+.idea/

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS Task Tracker - Dashboard</title>
+  <link rel="stylesheet" href="/css/home.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark">🎓</div>
+      <div class="logo-text">
+        <span class="logo-name">LMS Tracker</span>
+        <span class="logo-version">v1.0</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="user-pill">
+      <div class="avatar" id="userAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="user-email" id="userEmail">...</div>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <a href="#" class="nav-item active" onclick="showTab('home', this)">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="#" class="nav-item" onclick="showTab('tasks', this)">
+        <span class="nav-icon">📧</span>
+        <span class="nav-label">Daily Tasks</span>
+      </a>
+      <a href="#" class="nav-item" onclick="showTab('history', this)">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">History</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="streak-badge" id="streakBadge">
+        <span>🔥</span>
+        <span id="streakCount">0</span>
+        <span>day streak</span>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()">
+        <span>⎋</span> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content" id="mainContent">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-date" id="topbarDate"></div>
+        <div class="status-dot" id="statusDot" title="Server Online"></div>
+      </div>
+    </div>
+
+    <!-- ===== HOME TAB ===== -->
+    <div class="tab-content active" id="tabHome">
+      
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h2>Good <span id="timeGreeting">day</span>, <span id="welcomeName">there</span>! 👋</h2>
+          <p>Here's your learning progress summary</p>
+        </div>
+        <div class="welcome-art">🎯</div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card" id="statAttendance">
+          <div class="stat-icon">📅</div>
+          <div class="stat-body">
+            <div class="stat-value" id="valAttendance">—</div>
+            <div class="stat-label">Days Present</div>
+          </div>
+          <div class="stat-trend">Total</div>
+        </div>
+        <div class="stat-card highlight" id="statTasks">
+          <div class="stat-icon">✅</div>
+          <div class="stat-body">
+            <div class="stat-value" id="valTasks">—</div>
+            <div class="stat-label">Tasks Sent</div>
+          </div>
+          <div class="stat-trend">All time</div>
+        </div>
+        <div class="stat-card" id="statWeek">
+          <div class="stat-icon">📊</div>
+          <div class="stat-body">
+            <div class="stat-value" id="valWeek">—</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-trend">Tasks</div>
+        </div>
+        <div class="stat-card" id="statMonth">
+          <div class="stat-icon">🗓️</div>
+          <div class="stat-body">
+            <div class="stat-value" id="valMonth">—</div>
+            <div class="stat-label">This Month</div>
+          </div>
+          <div class="stat-trend">Tasks</div>
+        </div>
+      </div>
+
+      <!-- Today's Status -->
+      <div class="today-status" id="todayStatus">
+        <div class="today-icon" id="todayIcon">⏳</div>
+        <div class="today-text">
+          <strong id="todayTitle">Checking today's status...</strong>
+          <span id="todayDesc"></span>
+        </div>
+        <button class="btn-send-now" onclick="showTab('tasks', document.querySelector('.nav-item:nth-child(2)'))" id="todayCTA" style="display:none">
+          Send Task →
+        </button>
+      </div>
+
+      <!-- Recent Tasks -->
+      <div class="section-header">
+        <h3>📨 Recent Task Submissions</h3>
+        <a href="#" class="view-all" onclick="showTab('history', document.querySelector('.nav-item:nth-child(3)'))">View All →</a>
+      </div>
+
+      <div class="task-list" id="recentTaskList">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading tasks...</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== DAILY TASKS TAB ===== -->
+    <div class="tab-content" id="tabTasks">
+      
+      <div class="section-header" style="margin-bottom: 24px">
+        <h3>📧 Send Daily Task Report</h3>
+        <div class="today-badge" id="tasksTodayBadge"></div>
+      </div>
+
+      <div class="email-form-card">
+        <!-- From (read-only) -->
+        <div class="form-row">
+          <label class="email-label">From</label>
+          <div class="from-display">
+            <span class="from-avatar" id="formFromAvatar">?</span>
+            <span id="formFromEmail">your@email.com</span>
+          </div>
+        </div>
+        <div class="form-divider"></div>
+
+        <!-- To -->
+        <div class="form-row">
+          <label class="email-label" for="toEmail">To</label>
+          <input type="email" id="toEmail" class="email-input" placeholder="teacher@school.com" autocomplete="off">
+        </div>
+        <div class="form-divider"></div>
+
+        <!-- CC -->
+        <div class="form-row cc-row">
+          <label class="email-label" for="ccEmail">CC</label>
+          <div class="cc-container" id="ccContainer">
+            <div class="cc-tags" id="ccTags"></div>
+            <input type="text" id="ccInput" class="email-input cc-input" placeholder="Add CC email, press Enter or comma">
+          </div>
+          <button class="cc-toggle" id="ccToggle" onclick="toggleCC()">+ CC</button>
+        </div>
+        <div class="form-divider"></div>
+
+        <!-- Subject -->
+        <div class="form-row">
+          <label class="email-label" for="emailSubject">Subject</label>
+          <input type="text" id="emailSubject" class="email-input" placeholder="Daily Task Report - [Date]">
+        </div>
+        <div class="form-divider"></div>
+
+        <!-- Body -->
+        <div class="body-section">
+          <div class="body-toolbar">
+            <span class="body-label">📝 Daily Task Log</span>
+            <div class="toolbar-actions">
+              <button class="tool-btn" onclick="insertTemplate()" title="Insert template">📋 Template</button>
+              <button class="tool-btn" onclick="clearBody()" title="Clear">🗑 Clear</button>
+            </div>
+          </div>
+          <textarea id="emailBody" class="body-textarea" placeholder="Write your daily task log here...
+
+Example:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Date: [Today's Date]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Tasks Completed:
+1. 
+2. 
+3. 
+
+🔄 Tasks In Progress:
+1. 
+
+📌 Notes / Observations:
+-
+
+🗓 Tomorrow's Plan:
+1. 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"></textarea>
+          <div class="body-footer">
+            <span class="char-count" id="charCount">0 characters</span>
+            <span class="word-count" id="wordCount">0 words</span>
+          </div>
+        </div>
+
+        <!-- Send Actions -->
+        <div class="send-actions">
+          <div class="send-info">
+            <span>📡 Sending via SMTP</span>
+          </div>
+          <div class="send-buttons">
+            <button class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+            <button class="btn btn-primary" id="sendBtn" onclick="handleSendTask()">
+              <span>📤 Send Task Report</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert hidden" id="sendAlert"></div>
+      </div>
+    </div>
+
+    <!-- ===== HISTORY TAB ===== -->
+    <div class="tab-content" id="tabHistory">
+      
+      <div class="section-header">
+        <h3>📋 Task History</h3>
+        <span class="total-badge" id="historyTotal"></span>
+      </div>
+
+      <div class="history-list" id="historyList">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <span>Loading history...</span>
+        </div>
+      </div>
+
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </main>
+
+  <!-- ===== TASK DETAIL MODAL ===== -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modalTitle">Task Details</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="/js/home.js"></script>
+</body>
+</html>
