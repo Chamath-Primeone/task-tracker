@@ -1,23 +1,26 @@
 const nodemailer = require('nodemailer');
 
 function createTransporter() {
-  if (process.env.SMTP_HOST === 'smtp.gmail.com' || (process.env.SMTP_USER && process.env.SMTP_USER.endsWith('@gmail.com'))) {
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+
+  if (process.env.SMTP_HOST === 'smtp.gmail.com' || user.endsWith('@gmail.com')) {
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: user,
+        pass: pass,
       }
     });
   }
 
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: user,
+      pass: pass,
     },
     tls: {
       rejectUnauthorized: false
@@ -27,6 +30,9 @@ function createTransporter() {
 
 async function sendOTPEmail(toEmail, otp, username) {
   const transporter = createTransporter();
+  const user = (process.env.SMTP_USER || '').trim();
+  const fromName = (process.env.SMTP_FROM_NAME || 'LMS Task Tracker').trim();
+  const fromEmail = (process.env.SMTP_FROM_EMAIL || user).trim();
 
   const html = `
   <!DOCTYPE html>
@@ -75,7 +81,7 @@ async function sendOTPEmail(toEmail, otp, username) {
   `;
 
   await transporter.sendMail({
-    from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     to: toEmail,
     subject: '🔐 Your OTP for LMS Task Tracker Verification',
     html: html,
@@ -84,6 +90,9 @@ async function sendOTPEmail(toEmail, otp, username) {
 
 async function sendTaskEmail({ from, to, cc, subject, body, senderName }) {
   const transporter = createTransporter();
+  const user = (process.env.SMTP_USER || '').trim();
+  const fromName = senderName || process.env.SMTP_FROM_NAME || 'LMS Task Tracker';
+  const fromEmail = (process.env.SMTP_FROM_EMAIL || user).trim();
 
   const html = `
   <!DOCTYPE html>
@@ -127,7 +136,7 @@ async function sendTaskEmail({ from, to, cc, subject, body, senderName }) {
   `;
 
   const mailOptions = {
-    from: `"${senderName}" <${process.env.SMTP_FROM_EMAIL}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     replyTo: from,
     to: to,
     subject: subject,

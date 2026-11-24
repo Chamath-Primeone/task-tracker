@@ -158,6 +158,11 @@ async function handleSignup() {
     showStep('stepOTP');
     startOTPTimer();
 
+    if (data.devOtp) {
+      const otpErr = document.getElementById('otpError');
+      showAlert(otpErr, 'warning', `⚠️ SMTP not set on server. Your OTP code is: ${data.devOtp}`);
+    }
+
   } catch (err) {
     showAlert(errEl, 'error', 'Network error. Please try again.');
   } finally {
@@ -224,7 +229,11 @@ async function handleResendOTP() {
     if (!res.ok) {
       showAlert(errEl, 'error', data.error);
     } else {
-      showAlert(errEl, 'success', '✅ New OTP sent! Check your email.');
+      if (data.devOtp) {
+        showAlert(errEl, 'warning', `⚠️ SMTP not set on server. Your OTP code is: ${data.devOtp}`);
+      } else {
+        showAlert(errEl, 'success', '✅ New OTP sent! Check your email.');
+      }
       clearOTPInputs();
       clearInterval(otpTimer);
       startOTPTimer();
