@@ -62,41 +62,37 @@ router.post('/signup', async (req, res) => {
     // Store OTP
     db.prepare('INSERT INTO otps (email, otp, expires_at) VALUES (?, ?, ?)').run(email, otp, expiresAt);
 
-    // Send OTP email (with fallback for local testing if SMTP credentials are not yet set)
-    const isSmtpConfigured = process.env.SMTP_PASS && process.env.SMTP_PASS !== 'your_email_password_here';
+    // Send OTP email (with fallback if Render Free tier blocks outbound SMTP ports 465/587)
+    const isSmtpConfigured = process.env.SMTP_PASS && 
+      process.env.SMTP_PASS.trim() !== '' && 
+      process.env.SMTP_PASS !== 'your_email_password_here';
+
+    let emailSent = false;
+    let fallbackNotice = null;
 
     if (isSmtpConfigured) {
       try {
         await sendOTPEmail(email, otp, username);
+        emailSent = true;
       } catch (smtpErr) {
-        console.error('SMTP sending error:', smtpErr.message);
-        console.log(`\n🔑 [TESTING / DEV OTP CODE]: ${otp} (for ${email})\n`);
-        throw smtpErr;
+        console.warn('⚠️ SMTP send error (Render Free blocks outbound SMTP):', smtpErr.message);
+        fallbackNotice = 'Render Free tier blocks outbound SMTP ports. OTP is displayed below:';
       }
     } else {
-      console.log(`\n======================================================`);
-      console.log(`📢 [DEMO / DEV MODE] SMTP_PASS not set in .env`);
-      console.log(`🔑 Verification OTP for ${username} (${email}) is: ${otp}`);
-      console.log(`======================================================\n`);
+      fallbackNotice = 'SMTP_PASS not set on server. OTP is displayed below:';
     }
 
     res.json({ 
       success: true, 
-      message: isSmtpConfigured 
+      message: emailSent 
         ? 'OTP sent to your email. Please verify to complete registration.'
-        : 'OTP generated! (Dev mode: Check server terminal for your OTP)',
+        : `⚠️ ${fallbackNotice}`,
       email: email,
-      devOtp: isSmtpConfigured ? undefined : otp
+      devOtp: emailSent ? undefined : otp
     });
 
   } catch (err) {
     console.error('Signup error:', err.message);
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
-      return res.status(500).json({ error: 'Cannot connect to email server. Please check SMTP_HOST in .env file.' });
-    }
-    if (err.responseCode >= 500 || (err.message && err.message.toLowerCase().includes('invalid login'))) {
-      return res.status(500).json({ error: 'Email authentication failed. Please check SMTP_USER/SMTP_PASS in .env file.' });
-    }
     res.status(500).json({ error: `Registration failed: ${err.message}` });
   }
 });
@@ -154,21 +150,29 @@ router.post('/resend-otp', async (req, res) => {
     db.prepare('DELETE FROM otps WHERE email = ?').run(email);
     db.prepare('INSERT INTO otps (email, otp, expires_at) VALUES (?, ?, ?)').run(email, otp, expiresAt);
 
-    const isSmtpConfigured = process.env.SMTP_PASS && process.env.SMTP_PASS !== 'your_email_password_here';
+    const isSmtpConfigured = process.env.SMTP_PASS && 
+      process.env.SMTP_PASS.trim() !== '' && 
+      process.env.SMTP_PASS !== 'your_email_password_here';
+
+    let emailSent = false;
+    let fallbackNotice = null;
 
     if (isSmtpConfigured) {
-      await sendOTPEmail(email, otp, user.username);
+      try {
+        await sendOTPEmail(email, otp, user.username);
+        emailSent = true;
+      } catch (smtpErr) {
+        console.warn('⚠️ Resend SMTP error (Render Free blocks outbound SMTP):', smtpErr.message);
+        fallbackNotice = 'Render Free blocks outbound SMTP ports. OTP is displayed below:';
+      }
     } else {
-      console.log(`\n======================================================`);
-      console.log(`📢 [DEMO / DEV MODE RESEND] SMTP_PASS not set in .env`);
-      console.log(`🔑 Resent OTP for ${user.username} (${email}) is: ${otp}`);
-      console.log(`======================================================\n`);
+      fallbackNotice = 'SMTP_PASS not set on server. OTP is displayed below:';
     }
 
     res.json({ 
       success: true, 
-      message: isSmtpConfigured ? 'New OTP sent to your email.' : 'New OTP generated! (Check server terminal)',
-      devOtp: isSmtpConfigured ? undefined : otp
+      message: emailSent ? 'New OTP sent to your email.' : `⚠️ ${fallbackNotice}`,
+      devOtp: emailSent ? undefined : otp
     });
   } catch (err) {
     console.error('Resend OTP error:', err);

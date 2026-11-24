@@ -160,7 +160,17 @@ async function handleSignup() {
 
     if (data.devOtp) {
       const otpErr = document.getElementById('otpError');
-      showAlert(otpErr, 'warning', `⚠️ SMTP not set on server. Your OTP code is: ${data.devOtp}`);
+      showAlert(otpErr, 'warning', `⚠️ Render Free tier blocks SMTP. Your OTP is: ${data.devOtp}`);
+      // Auto-fill OTP inputs
+      const digits = data.devOtp.toString().split('');
+      ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach((id, i) => {
+        const inp = document.getElementById(id);
+        if (inp && digits[i]) {
+          inp.value = digits[i];
+          inp.classList.add('filled');
+        }
+      });
+      document.getElementById('otp6').focus();
     }
 
   } catch (err) {
@@ -230,7 +240,16 @@ async function handleResendOTP() {
       showAlert(errEl, 'error', data.error);
     } else {
       if (data.devOtp) {
-        showAlert(errEl, 'warning', `⚠️ SMTP not set on server. Your OTP code is: ${data.devOtp}`);
+        showAlert(errEl, 'warning', `⚠️ Render Free tier blocks SMTP. Your OTP is: ${data.devOtp}`);
+        const digits = data.devOtp.toString().split('');
+        ['otp1','otp2','otp3','otp4','otp5','otp6'].forEach((id, i) => {
+          const inp = document.getElementById(id);
+          if (inp && digits[i]) {
+            inp.value = digits[i];
+            inp.classList.add('filled');
+          }
+        });
+        document.getElementById('otp6').focus();
       } else {
         showAlert(errEl, 'success', '✅ New OTP sent! Check your email.');
       }

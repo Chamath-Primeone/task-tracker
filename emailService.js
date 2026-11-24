@@ -4,13 +4,20 @@ function createTransporter() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
+  const timeoutConfig = {
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000
+  };
+
   if (process.env.SMTP_HOST === 'smtp.gmail.com' || user.endsWith('@gmail.com')) {
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: user,
         pass: pass,
-      }
+      },
+      ...timeoutConfig
     });
   }
 
@@ -24,7 +31,8 @@ function createTransporter() {
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    ...timeoutConfig
   });
 }
 
