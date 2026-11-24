@@ -12,6 +12,9 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Render, Cloudflare, Heroku)
+app.set('trust proxy', 1);
+
 // Initialize database
 initDB();
 
@@ -19,12 +22,14 @@ initDB();
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Too many requests, please try again later.' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Too many auth attempts, please try again later.' }
 });
 
