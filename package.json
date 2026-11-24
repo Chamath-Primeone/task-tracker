@@ -12,6 +12,9 @@
     "task-tracker",
     "nodejs"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "author": "Chamath",
   "license": "ISC",
   "dependencies": {

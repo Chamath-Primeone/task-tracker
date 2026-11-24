@@ -35,6 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/', limiter);
 
 // Routes
+app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/stats', statsRoutes);
