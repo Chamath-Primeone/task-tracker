@@ -38,19 +38,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Load user info
+  // Instantly populate UI from cached user info if available
+  const cachedUser = localStorage.getItem('user');
+  if (cachedUser) {
+    try {
+      currentUser = JSON.parse(cachedUser);
+      setUserUI();
+    } catch(e) {}
+  }
+
+  // Verify and sync user profile with server
   try {
     const res = await fetch(`${API}/api/auth/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Unauthorized');
-    const data = await res.json();
-    currentUser = data.user;
-    setUserUI();
-  } catch {
-    localStorage.clear();
-    window.location.href = '/';
-    return;
+
+    if (res.status === 401 || res.status === 403) {
+      // Explicit invalid/expired session - redirect to login
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        currentUser = data.user;
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUserUI();
+      }
+    }
+  } catch (err) {
+    console.warn('Network issue fetching user profile, keeping session:', err);
+    // Do NOT clear localStorage or redirect on transient network hiccup!
   }
 
   // Set date

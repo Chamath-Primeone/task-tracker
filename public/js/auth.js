@@ -4,7 +4,7 @@
 // ============================================
 
 const API = '';
-let pendingEmail = '';
+let pendingEmail = sessionStorage.getItem('pendingEmail') || '';
 let otpTimer = null;
 let captchaAnswer = 0;
 
@@ -76,14 +76,15 @@ async function handleLogin() {
 
     if (!res.ok) {
       if (data.needsVerification) {
-        pendingEmail = data.email || email;
+        pendingEmail = (data.email || email).trim().toLowerCase();
+        sessionStorage.setItem('pendingEmail', pendingEmail);
         showAlert(errEl, 'warning', '⚠️ Your email is not verified. Please check your inbox for OTP.');
         // Show OTP step
         setTimeout(() => {
           document.getElementById('otpEmailDisplay').textContent = pendingEmail;
           showStep('stepOTP');
           startOTPTimer();
-        }, 1500);
+        }, 1200);
       } else {
         showAlert(errEl, 'error', data.error || 'Login failed.');
       }
@@ -153,8 +154,9 @@ async function handleSignup() {
       return;
     }
 
-    pendingEmail = email;
-    document.getElementById('otpEmailDisplay').textContent = email;
+    pendingEmail = email.trim().toLowerCase();
+    sessionStorage.setItem('pendingEmail', pendingEmail);
+    document.getElementById('otpEmailDisplay').textContent = pendingEmail;
     showStep('stepOTP');
     startOTPTimer();
 
@@ -210,6 +212,19 @@ async function handleVerifyOTP() {
     }
 
     clearInterval(otpTimer);
+
+    // Auto-login: If server returned token, save session and redirect directly!
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+      sessionStorage.removeItem('pendingEmail');
+      showAlert(errEl, 'success', '✅ Email verified! Redirecting to dashboard...');
+      setTimeout(() => {
+        window.location.href = '/home';
+      }, 700);
+      return;
+    }
+
     showStep('stepSuccess');
 
   } catch (err) {
@@ -223,6 +238,12 @@ async function handleVerifyOTP() {
 async function handleResendOTP() {
   const errEl = document.getElementById('otpError');
   const resendLink = document.getElementById('resendLink');
+  const targetEmail = pendingEmail || sessionStorage.getItem('pendingEmail');
+
+  if (!targetEmail) {
+    showAlert(errEl, 'error', 'No email address found. Please register again.');
+    return;
+  }
 
   resendLink.style.pointerEvents = 'none';
   resendLink.textContent = 'Sending...';
@@ -231,7 +252,7 @@ async function handleResendOTP() {
     const res = await fetch(`${API}/api/auth/resend-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: pendingEmail })
+      body: JSON.stringify({ email: targetEmail })
     });
 
     const data = await res.json();

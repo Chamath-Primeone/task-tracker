@@ -18,17 +18,18 @@ app.set('trust proxy', 1);
 // Initialize database
 initDB();
 
-// Rate limiting
+// General API Rate Limiting (150 requests per 15 min)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  windowMs: 15 * 60 * 1000,
+  max: 150,
   validate: { xForwardedForHeader: false },
   message: { error: 'Too many requests, please try again later.' }
 });
 
+// Sensitive Auth Rate Limiter (signup / login brute-force guard: 50 requests per 15 min)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
   validate: { xForwardedForHeader: false },
   message: { error: 'Too many auth attempts, please try again later.' }
 });
@@ -41,7 +42,12 @@ app.use('/api/', limiter);
 
 // Routes
 app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
-app.use('/api/auth', authLimiter, authRoutes);
+
+// Apply authLimiter only to login and signup endpoints, NOT to /me or general auth
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/auth', authRoutes);
+
 app.use('/api/tasks', taskRoutes);
 app.use('/api/stats', statsRoutes);
 
