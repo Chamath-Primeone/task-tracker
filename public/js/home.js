@@ -4,18 +4,31 @@
 // ============================================
 
 // ============================================
-//  TEACHER CONFIGURATION (Easy to edit names & emails)
+//  TEACHER CONFIGURATION & CUSTOM LIST
 // ============================================
-const TEACHERS_CONFIG = [
+const DEFAULT_TEACHERS = [
   { id: 'teacher1', name: 'Teacher 1 Name', email: 'teacher1@example.com' },
   { id: 'teacher2', name: 'Teacher 2 Name', email: 'teacher2@example.com' },
   { id: 'teacher3', name: 'Teacher 3 Name', email: 'teacher3@example.com' },
 ];
 
-const API = '';
-let currentUser = null;
-let currentPage = 1;
-let selectedTeacherIds = ['teacher1', 'teacher2', 'teacher3']; // Default: all 3 selected
+function loadTeachersFromStorage() {
+  const saved = localStorage.getItem('lms_custom_teachers');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch(e) {}
+  }
+  return [...DEFAULT_TEACHERS];
+}
+
+let teachersList = loadTeachersFromStorage();
+let selectedTeacherIds = teachersList.map(t => t.id); // Default: all selected
+
+function saveTeachersToStorage() {
+  localStorage.setItem('lms_custom_teachers', JSON.stringify(teachersList));
+}
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -328,7 +341,13 @@ function renderTeacherCheckboxes() {
   const container = document.getElementById('teachersContainer');
   if (!container) return;
 
-  container.innerHTML = TEACHERS_CONFIG.map((teacher) => {
+  // Filter selected IDs to only existing teachers
+  selectedTeacherIds = selectedTeacherIds.filter(id => teachersList.some(t => t.id === id));
+  if (selectedTeacherIds.length === 0 && teachersList.length > 0) {
+    selectedTeacherIds = [teachersList[0].id];
+  }
+
+  const cardsHtml = teachersList.map((teacher) => {
     const isChecked = selectedTeacherIds.includes(teacher.id);
     let roleClass = 'none';
     let roleText = '';
@@ -356,9 +375,20 @@ function renderTeacherCheckboxes() {
           </div>
           <div class="teacher-email">${escapeHtml(teacher.email)}</div>
         </div>
+        <button type="button" class="card-edit-btn" onclick="event.stopPropagation(); openTeacherModal()" title="Edit Teachers">✏️</button>
       </div>
     `;
   }).join('');
+
+  // Add the "+ Add Teacher" button card at the end
+  const addCardHtml = `
+    <div class="teacher-card add-card-btn" onclick="openTeacherModal()" title="Add another teacher">
+      <span>➕</span>
+      <span>Add Teacher</span>
+    </div>
+  `;
+
+  container.innerHTML = cardsHtml + addCardHtml;
 
   updateRecipientPreview();
   updateLivePreview();
@@ -380,7 +410,7 @@ function toggleTeacherSelect(teacherId) {
 
 function getSelectedRecipients() {
   const selectedTeachers = selectedTeacherIds
-    .map(id => TEACHERS_CONFIG.find(t => t.id === id))
+    .map(id => teachersList.find(t => t.id === id))
     .filter(Boolean);
 
   if (selectedTeachers.length === 0) {
@@ -416,6 +446,136 @@ function updateRecipientPreview() {
       previewCC.textContent = 'None';
       previewCC.style.color = 'var(--text-muted)';
     }
+  }
+}
+
+// ===== TEACHER MODAL & MANAGEMENT FUNCTIONS =====
+function openTeacherModal() {
+  const modal = document.getElementById('teacherModalOverlay');
+  if (modal) modal.classList.add('open');
+  renderTeacherEditList();
+  hideAlert(document.getElementById('addTeacherAlert'));
+  setTimeout(() => {
+    const nameInput = document.getElementById('newTeacherName');
+    if (nameInput) nameInput.focus();
+  }, 100);
+}
+
+function closeTeacherModal() {
+  const modal = document.getElementById('teacherModalOverlay');
+  if (modal) modal.classList.remove('open');
+  renderTeacherCheckboxes();
+}
+
+function renderTeacherEditList() {
+  const container = document.getElementById('teacherEditList');
+  if (!container) return;
+
+  if (teachersList.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:16px;">No teachers added yet. Use the form above to add one!</div>`;
+    return;
+  }
+
+  container.innerHTML = teachersList.map((teacher) => `
+    <div class="teacher-edit-row" id="row_${teacher.id}">
+      <input type="text" class="form-input" id="name_${teacher.id}" value="${escapeHtml(teacher.name)}" placeholder="Teacher Name">
+      <input type="email" class="form-input" id="email_${teacher.id}" value="${escapeHtml(teacher.email)}" placeholder="Teacher Email">
+      <button type="button" class="btn-row-action btn-row-save" onclick="saveTeacherRow('${teacher.id}')" title="Save changes">💾 Save</button>
+      <button type="button" class="btn-row-action btn-row-delete" onclick="deleteTeacherRow('${teacher.id}')" title="Delete teacher">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function addNewTeacher() {
+  const nameInput = document.getElementById('newTeacherName');
+  const emailInput = document.getElementById('newTeacherEmail');
+  const alertEl = document.getElementById('addTeacherAlert');
+
+  hideAlert(alertEl);
+
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  if (!name || !email) {
+    showAlert(alertEl, 'error', 'Please enter both teacher name and email address.');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showAlert(alertEl, 'error', 'Please enter a valid email address (e.g. name@school.com).');
+    return;
+  }
+
+  // Generate unique ID
+  const newId = 'teacher_' + Date.now();
+  teachersList.push({ id: newId, name, email });
+  selectedTeacherIds.push(newId);
+
+  saveTeachersToStorage();
+
+  nameInput.value = '';
+  emailInput.value = '';
+
+  showAlert(alertEl, 'success', `✅ Added ${name} (${email})!`);
+  renderTeacherEditList();
+  renderTeacherCheckboxes();
+  showToast(`Added ${name}!`, 'success');
+}
+
+function saveTeacherRow(id) {
+  const nameInput = document.getElementById(`name_${id}`);
+  const emailInput = document.getElementById(`email_${id}`);
+
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+
+  if (!name || !email) {
+    showToast('Name and email cannot be empty!', 'error');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('Invalid email address format!', 'error');
+    return;
+  }
+
+  const teacher = teachersList.find(t => t.id === id);
+  if (teacher) {
+    teacher.name = name;
+    teacher.email = email;
+    saveTeachersToStorage();
+    renderTeacherCheckboxes();
+    showToast(`Saved ${name}!`, 'success');
+  }
+}
+
+function deleteTeacherRow(id) {
+  if (teachersList.length <= 1) {
+    showToast('You must keep at least 1 teacher in the list!', 'warning');
+    return;
+  }
+
+  const teacher = teachersList.find(t => t.id === id);
+  if (confirm(`Remove ${teacher ? teacher.name : 'this teacher'} from the list?`)) {
+    teachersList = teachersList.filter(t => t.id !== id);
+    selectedTeacherIds = selectedTeacherIds.filter(tid => tid !== id);
+    saveTeachersToStorage();
+    renderTeacherEditList();
+    renderTeacherCheckboxes();
+    showToast('Teacher removed', 'info');
+  }
+}
+
+function resetDefaultTeachers() {
+  if (confirm('Reset teacher list back to default placeholders?')) {
+    teachersList = [...DEFAULT_TEACHERS];
+    selectedTeacherIds = teachersList.map(t => t.id);
+    saveTeachersToStorage();
+    renderTeacherEditList();
+    renderTeacherCheckboxes();
+    showToast('Reset to default teachers', 'info');
   }
 }
 
@@ -590,7 +750,7 @@ function clearTaskForm() {
   if (confirm('Clear the task form fields?')) {
     if (document.getElementById('tasksCompleted')) document.getElementById('tasksCompleted').value = '';
     if (document.getElementById('taskNotes')) document.getElementById('taskNotes').value = '';
-    selectedTeacherIds = ['teacher1', 'teacher2', 'teacher3'];
+    selectedTeacherIds = teachersList.map(t => t.id);
     renderTeacherCheckboxes();
     updateCounters();
     updateLivePreview();

@@ -1454,3 +1454,190 @@ body {
   color: #ffffff;
   border-color: var(--neon);
 }
+
+/* ===== TEACHER MANAGEMENT ENHANCEMENTS ===== */
+.btn-manage-teachers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 8px;
+  color: var(--neon);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all var(--transition);
+}
+
+.btn-manage-teachers:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: var(--neon);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Add Teacher Card in Grid */
+.teacher-card.add-card-btn {
+  border: 2px dashed rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 8px;
+  min-height: 52px;
+  color: var(--neon);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.teacher-card.add-card-btn:hover {
+  border-color: var(--neon);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+}
+
+/* Card Edit Button */
+.card-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all var(--transition);
+  opacity: 0.6;
+}
+
+.card-edit-btn:hover {
+  color: var(--neon);
+  background: rgba(0, 212, 255, 0.1);
+  opacity: 1;
+}
+
+/* Teacher Modal */
+.modal.teacher-modal {
+  max-width: 640px;
+}
+
+.add-teacher-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.add-teacher-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.add-teacher-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-add-teacher {
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.teacher-list-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.teacher-list-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.teacher-list-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.teacher-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.teacher-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.teacher-edit-row .form-input {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.btn-row-action {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all var(--transition);
+}
+
+.btn-row-save {
+  color: #00ff88;
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.btn-row-save:hover {
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.btn-row-delete {
+  color: #ff4757;
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
+.btn-row-delete:hover {
+  background: rgba(255, 71, 87, 0.15);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+@media (max-width: 600px) {
+  .add-teacher-grid {
+    grid-template-columns: 1fr;
+  }
+  .teacher-edit-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

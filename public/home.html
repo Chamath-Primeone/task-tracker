@@ -163,12 +163,15 @@
           <div class="section-title-wrap">
             <span class="section-title-icon">👨‍🏫</span>
             <span class="section-title-text">Teacher Selection</span>
+            <span class="section-subtitle">(1st selected goes to <strong>To</strong>, remaining go to <strong>CC</strong>)</span>
           </div>
-          <span class="section-subtitle">1st selected goes to <strong>To</strong>, remaining go to <strong>CC</strong></span>
+          <button type="button" class="btn-manage-teachers" onclick="openTeacherModal()">
+            <span>⚙️ Add / Edit Teachers</span>
+          </button>
         </div>
 
         <div class="teachers-checkbox-container" id="teachersContainer">
-          <!-- Rendered dynamically from TEACHERS_CONFIG in home.js -->
+          <!-- Rendered dynamically from teachersList in home.js -->
         </div>
 
         <!-- Recipient Preview Summary -->
@@ -297,6 +300,45 @@
         <button class="modal-close" onclick="closeModal()">✕</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== TEACHER MANAGEMENT MODAL ===== -->
+  <div class="modal-overlay" id="teacherModalOverlay" onclick="closeTeacherModal()">
+    <div class="modal teacher-modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>👨‍🏫 Manage Teachers & Emails</h3>
+        <button class="modal-close" onclick="closeTeacherModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Add New Teacher Form -->
+        <div class="add-teacher-box">
+          <div class="add-teacher-title">➕ Add New Teacher</div>
+          <div class="add-teacher-grid">
+            <input type="text" id="newTeacherName" class="form-input" placeholder="Teacher Name (e.g. Mr. Perera)">
+            <input type="email" id="newTeacherEmail" class="form-input" placeholder="Teacher Email (e.g. perera@school.com)">
+            <button type="button" class="btn btn-primary btn-add-teacher" onclick="addNewTeacher()">
+              <span>+ Add Teacher</span>
+            </button>
+          </div>
+          <div class="alert hidden" id="addTeacherAlert" style="margin: 10px 0 0;"></div>
+        </div>
+
+        <!-- Existing Teachers List -->
+        <div class="teacher-list-header">
+          <span class="teacher-list-title">My Teachers List</span>
+          <span class="teacher-list-hint">(Edit name/email directly or delete)</span>
+        </div>
+        <div class="teacher-edit-list" id="teacherEditList">
+          <!-- Dynamically populated -->
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="resetDefaultTeachers()">Reset to Default</button>
+        <button type="button" class="btn btn-primary" onclick="closeTeacherModal()">Done</button>
+      </div>
     </div>
   </div>
 
