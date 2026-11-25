@@ -78,24 +78,27 @@ router.post('/signup', async (req, res) => {
     // Store OTP
     db.prepare('INSERT INTO otps (email, otp, expires_at) VALUES (?, ?, ?)').run(cleanEmail, otp, expiresAt);
 
-    // Send OTP email (with fallback if Render Free tier blocks outbound SMTP ports 465/587)
-    const isSmtpConfigured = process.env.SMTP_PASS && 
-      process.env.SMTP_PASS.trim() !== '' && 
-      process.env.SMTP_PASS !== 'your_email_password_here';
+    // Send OTP email (supports HTTPS Relays: GMAIL_RELAY_URL, BREVO_API_KEY, RESEND_API_KEY, or standard SMTP)
+    const isEmailConfigured = Boolean(
+      (process.env.GMAIL_RELAY_URL && process.env.GMAIL_RELAY_URL.trim() !== '') ||
+      (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== '') ||
+      (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') ||
+      (process.env.SMTP_PASS && process.env.SMTP_PASS.trim() !== '' && process.env.SMTP_PASS !== 'your_email_password_here')
+    );
 
     let emailSent = false;
     let fallbackNotice = null;
 
-    if (isSmtpConfigured) {
+    if (isEmailConfigured) {
       try {
         await sendOTPEmail(cleanEmail, otp, cleanUsername);
         emailSent = true;
       } catch (smtpErr) {
-        console.warn('⚠️ SMTP send error (Render Free blocks outbound SMTP):', smtpErr.message);
-        fallbackNotice = 'Render Free tier blocks outbound SMTP ports. OTP is displayed below:';
+        console.warn('⚠️ Email send error:', smtpErr.message);
+        fallbackNotice = 'Email delivery failed or blocked. OTP is displayed below:';
       }
     } else {
-      fallbackNotice = 'SMTP_PASS not set on server. OTP is displayed below:';
+      fallbackNotice = 'Email service not configured. OTP is displayed below:';
     }
 
     res.json({ 
@@ -206,23 +209,26 @@ router.post('/resend-otp', async (req, res) => {
     db.prepare('DELETE FROM otps WHERE lower(trim(email)) = ?').run(cleanEmail);
     db.prepare('INSERT INTO otps (email, otp, expires_at) VALUES (?, ?, ?)').run(cleanEmail, otp, expiresAt);
 
-    const isSmtpConfigured = process.env.SMTP_PASS && 
-      process.env.SMTP_PASS.trim() !== '' && 
-      process.env.SMTP_PASS !== 'your_email_password_here';
+    const isEmailConfigured = Boolean(
+      (process.env.GMAIL_RELAY_URL && process.env.GMAIL_RELAY_URL.trim() !== '') ||
+      (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== '') ||
+      (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') ||
+      (process.env.SMTP_PASS && process.env.SMTP_PASS.trim() !== '' && process.env.SMTP_PASS !== 'your_email_password_here')
+    );
 
     let emailSent = false;
     let fallbackNotice = null;
 
-    if (isSmtpConfigured) {
+    if (isEmailConfigured) {
       try {
         await sendOTPEmail(cleanEmail, otp, user.username);
         emailSent = true;
       } catch (smtpErr) {
-        console.warn('⚠️ Resend SMTP error (Render Free blocks outbound SMTP):', smtpErr.message);
-        fallbackNotice = 'Render Free tier blocks outbound SMTP ports. OTP is displayed below:';
+        console.warn('⚠️ Resend email error:', smtpErr.message);
+        fallbackNotice = 'Email delivery failed or blocked. OTP is displayed below:';
       }
     } else {
-      fallbackNotice = 'SMTP_PASS not set on server. OTP is displayed below:';
+      fallbackNotice = 'Email service not configured. OTP is displayed below:';
     }
 
     res.json({ 

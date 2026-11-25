@@ -1,5 +1,82 @@
 const nodemailer = require('nodemailer');
 
+// Universal HTTPS Email Sender (Bypasses Render Free Tier blocked SMTP ports 25, 465, 587)
+async function sendViaHttps({ to, cc, subject, html, text, fromName, fromEmail }) {
+  // Option 1: Google Apps Script Web App (Gmail HTTPS Relay - 100% Free, sends from your own Gmail)
+  if (process.env.GMAIL_RELAY_URL && process.env.GMAIL_RELAY_URL.trim() !== '') {
+    const relayUrl = process.env.GMAIL_RELAY_URL.trim();
+    const res = await fetch(relayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, cc, subject, html, text })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success !== false) {
+      return true;
+    }
+    throw new Error(data.error || `Gmail Relay error (${res.status})`);
+  }
+
+  // Option 2: Brevo (Sendinblue) REST API (300 free emails/day over HTTPS)
+  if (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== '') {
+    const sender = {
+      name: fromName || process.env.SMTP_FROM_NAME || 'LMS Task Tracker',
+      email: fromEmail || process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@lms.local'
+    };
+    const toList = [{ email: to }];
+    const ccList = cc ? cc.split(',').map(e => ({ email: e.trim() })).filter(e => e.email) : undefined;
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY.trim()
+      },
+      body: JSON.stringify({
+        sender,
+        to: toList,
+        cc: ccList,
+        subject,
+        htmlContent: html,
+        textContent: text
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || `Brevo API error: ${res.status}`);
+    }
+    return true;
+  }
+
+  // Option 3: Resend REST API (100 free emails/day over HTTPS)
+  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim() !== '') {
+    const sender = `${fromName || process.env.SMTP_FROM_NAME || 'LMS Task Tracker'} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: sender,
+        to: [to],
+        cc: cc ? cc.split(',').map(e => e.trim()).filter(Boolean) : undefined,
+        subject,
+        html,
+        text
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || `Resend API error: ${res.status}`);
+    }
+    return true;
+  }
+
+  return false;
+}
+
 function createTransporter() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
@@ -37,7 +114,6 @@ function createTransporter() {
 }
 
 async function sendOTPEmail(toEmail, otp, username) {
-  const transporter = createTransporter();
   const user = (process.env.SMTP_USER || '').trim();
   const fromName = (process.env.SMTP_FROM_NAME || 'LMS Task Tracker').trim();
   const fromEmail = (process.env.SMTP_FROM_EMAIL || user).trim();
@@ -88,6 +164,20 @@ async function sendOTPEmail(toEmail, otp, username) {
   </html>
   `;
 
+  // 1. Try sending via HTTPS REST APIs (works on Render Free tier without port blocking)
+  const sentViaHttps = await sendViaHttps({
+    to: toEmail,
+    subject: '🔐 Your OTP for LMS Task Tracker Verification',
+    html: html,
+    text: `Your LMS Task Tracker OTP is: ${otp}. It expires in 10 minutes.`,
+    fromName,
+    fromEmail
+  });
+
+  if (sentViaHttps) return;
+
+  // 2. Fallback to standard SMTP (Nodemailer)
+  const transporter = createTransporter();
   await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to: toEmail,
@@ -97,7 +187,6 @@ async function sendOTPEmail(toEmail, otp, username) {
 }
 
 async function sendTaskEmail({ from, to, cc, subject, body, senderName }) {
-  const transporter = createTransporter();
   const user = (process.env.SMTP_USER || '').trim();
   const fromName = senderName || process.env.SMTP_FROM_NAME || 'LMS Task Tracker';
   const fromEmail = (process.env.SMTP_FROM_EMAIL || user).trim();
@@ -143,6 +232,21 @@ async function sendTaskEmail({ from, to, cc, subject, body, senderName }) {
   </html>
   `;
 
+  // 1. Try sending via HTTPS REST APIs (works on Render Free tier)
+  const sentViaHttps = await sendViaHttps({
+    to,
+    cc,
+    subject,
+    html,
+    text: body,
+    fromName,
+    fromEmail
+  });
+
+  if (sentViaHttps) return;
+
+  // 2. Fallback to standard SMTP (Nodemailer)
+  const transporter = createTransporter();
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     replyTo: from,
